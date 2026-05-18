@@ -20,7 +20,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
           password: configService.get<string>('DB_PASSWORD', ''),
           database: configService.get<string>('DB_NAME', 'telemedicine'),
           entities: [__dirname + '/../**/*.entity{.ts,.js}'],
-          synchronize: configService.get<string>('NODE_ENV') !== 'production',
+          synchronize: configService.get<string>('NODE_ENV') !== 'production'
+            || configService.get<string>('DB_SYNCHRONIZE') === 'true',
           logging: configService.get<string>('NODE_ENV') === 'development',
           // SSL is required for Supabase and Neon — disabled for local Postgres
           ssl: isLocal ? false : { rejectUnauthorized: false },
