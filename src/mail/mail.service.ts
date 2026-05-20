@@ -9,13 +9,18 @@ export class MailService {
   private readonly logger = new Logger(MailService.name);
 
   constructor(private readonly configService: ConfigService) {
+    const port = this.configService.get<number>('MAIL_PORT', 587);
     this.transporter = nodemailer.createTransport({
       host: this.configService.get<string>('MAIL_HOST'),
-      port: this.configService.get<number>('MAIL_PORT'),
-      secure: this.configService.get<number>('MAIL_PORT') === 465, // true for 465, false for other ports
+      port,
+      secure: port === 465,
+      requireTLS: port === 587,
       auth: {
         user: this.configService.get<string>('MAIL_USER'),
         pass: this.configService.get<string>('MAIL_PASS'),
+      },
+      tls: {
+        rejectUnauthorized: false,
       },
     });
   }
@@ -47,7 +52,7 @@ export class MailService {
     try {
       await this.transporter.sendMail(mailOptions);
       this.logger.log(`Verification email sent to ${user.email}`);
-    } catch (error) {
+    } catch (error:any) {
       this.logger.error(`Failed to send verification email to ${user.email}`, error.stack);
     }
   }

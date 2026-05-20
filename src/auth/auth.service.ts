@@ -19,6 +19,7 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { JwtPayload } from './strategies/jwt.strategy';
 import { DoctorService } from '../doctor/doctor.service';
+import { DoctorStatus } from '../doctor/entities/doctor.entity';
 import { PatientsService } from '../patients/patients.service';
 import { MailService } from '../mail/mail.service';
 import { PasswordResetToken } from './entities/password-reset-token.entity';
@@ -173,6 +174,13 @@ export class AuthService {
     if (!passwordMatch) throw new UnauthorizedException('Invalid credentials');
 
     if (!user.isActive) throw new UnauthorizedException('Account has been deactivated');
+
+    if (!user.isEmailVerified) {
+      await this.sendVerificationEmail(user);
+      throw new UnauthorizedException(
+        'Your email is not verified. A new verification link has been sent to your email — please click it to activate your account.',
+      );
+    }
 
     return this.issueTokens(user);
   }

@@ -59,12 +59,59 @@ export class AdminController {
     return this.adminService.updateDoctorStatus(id, dto.status);
   }
 
+  // ── Patients ──────────────────────────────────────────────────────────────
+
+  /** GET /admin/patients?search=&page=&limit= */
+  @Get('patients')
+  getAllPatients(
+    @Query() pagination: PaginationDto,
+    @Query('search') search?: string,
+  ) {
+    return this.adminService.getAllPatients(pagination, search);
+  }
+
+  /** GET /admin/patients/:id */
+  @Get('patients/:id')
+  getPatient(@Param('id', ParseIntPipe) id: number) {
+    return this.adminService.getPatient(id);
+  }
+
+  // ── Appointments ──────────────────────────────────────────────────────────
+
+  /** GET /admin/appointments?status=&from=&to=&page=&limit= */
+  @Get('appointments')
+  getAllAppointments(
+    @Query() pagination: PaginationDto,
+    @Query('status') status?: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
+    return this.adminService.getAllAppointments(pagination, { status: status as any, from, to });
+  }
+
+  /** GET /admin/appointments/:id */
+  @Get('appointments/:id')
+  getAppointment(@Param('id', ParseIntPipe) id: number) {
+    return this.adminService.getAppointment(id);
+  }
+
+  // ── Users ─────────────────────────────────────────────────────────────────
+
+  /** PATCH /admin/users/:id/deactivate */
+  @Patch('users/:id/deactivate')
+  deactivateUser(@Param('id', ParseIntPipe) id: number) {
+    return this.adminService.setUserActive(id, false);
+  }
+
+  /** PATCH /admin/users/:id/activate */
+  @Patch('users/:id/activate')
+  activateUser(@Param('id', ParseIntPipe) id: number) {
+    return this.adminService.setUserActive(id, true);
+  }
+
   // ── Dashboard ─────────────────────────────────────────────────────────────
 
-  /**
-   * GET /admin/dashboard
-   * High-level stats: doctors (total/verified/pending/suspended), users, specialties.
-   */
+  /** GET /admin/dashboard */
   @Get('dashboard')
   getDashboard() {
     return this.adminService.getDashboardStats();

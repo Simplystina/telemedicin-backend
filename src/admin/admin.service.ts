@@ -1,9 +1,11 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Between, Repository } from 'typeorm';
 import { Doctor, DoctorStatus } from '../doctor/entities/doctor.entity';
 import { User } from '../users/entities/user.entity';
 import { Specialty } from '../doctor/entities/specialty.entity';
+import { Patient } from '../patients/entities/patient.entity';
+import { Appointment, AppointmentStatus } from '../appointments/entities/appointment.entity';
 import { FilterDoctorDto } from '../doctor/dto/filter-doctor.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
 
@@ -16,6 +18,10 @@ export class AdminService {
     private readonly userRepo: Repository<User>,
     @InjectRepository(Specialty)
     private readonly specialtyRepo: Repository<Specialty>,
+    @InjectRepository(Patient)
+    private readonly patientRepo: Repository<Patient>,
+    @InjectRepository(Appointment)
+    private readonly appointmentRepo: Repository<Appointment>,
   ) {}
 
 
@@ -74,6 +80,97 @@ export class AdminService {
     const doctor = await this.getDoctor(id);
     doctor.status = status;
     return this.doctorRepo.save(doctor);
+  }
+
+  // ── Patients ──────────────────────────────────────────────────────────────
+
+  async getAllPatients(pagination: PaginationDto, search?: string) {
+    const { page = 1, limit = 10 } = pagination;
+    const skip = (page - 1) * limit;
+
+    const qb = this.patientRepo
+      .createQueryBuilder('patient')
+      .leftJoinAndSelect('patient.user', 'user')
+      .skip(skip)
+      .take(limit)
+      .orderBy('patient.createdAt', 'DESC');
+
+    if (search) {
+      qb.andWhere(
+        '(patient.firstName ILIKE :search OR patient.lastName ILIKE :search OR user.email ILIKE :search)',
+        { search: `%${search}%` },
+      );
+    }
+
+    const [data, total] = await qb.getManyAndCount();
+    return { data, meta: { total, page, limit, totalPages: Math.ceil(total / limit) } };
+  }
+
+  async getPatient(id: number) {
+    const patient = await this.patientRepo.findOne({ where: { id }, relations: ['user'] });
+    if (!patient) throw new NotFoundException(`Patient with ID "${id}" not found`);
+    return patient;
+  }
+
+  // ── Appointments ──────────────────────────────────────────────────────────
+
+  async getAllAppointments(
+    pagination: PaginationDto,
+    filters: { status?: AppointmentStatus; from?: string; to?: string },
+  ) {
+    const { page = 1, limit = 10 } = pagination;
+    const skip = (page - 1) * limit;
+
+    const qb = this.appointmentRepo
+      .createQueryBuilder('appt')
+      .leftJoinAndSelect('appt.doctor', 'doctor')
+      .leftJoinAndSelect('doctor.specialty', 'specialty')
+      .leftJoinAndSelect('appt.patient', 'patient')
+      .leftJoinAndSelect('patient.user', 'patientUser')
+      .leftJoinAndSelect('doctor.user', 'doctorUser')
+      .skip(skip)
+      .take(limit)
+      .orderBy('appt.scheduledAt', 'DESC');
+
+    if (filters.status) {
+      qb.andWhere('appt.status = :status', { status: filters.status });
+    }
+    if (filters.from && filters.to) {
+      qb.andWhere('appt.scheduledAt BETWEEN :from AND :to', {
+        from: new Date(filters.from),
+        to: new Date(filters.to),
+      });
+    } else if (filters.from) {
+      qb.andWhere('appt.scheduledAt >= :from', { from: new Date(filters.from) });
+    } else if (filters.to) {
+      qb.andWhere('appt.scheduledAt <= :to', { to: new Date(filters.to) });
+    }
+
+    const [data, total] = await qb.getManyAndCount();
+    return { data, meta: { total, page, limit, totalPages: Math.ceil(total / limit) } };
+  }
+
+  async getAppointment(id: number) {
+    const appt = await this.appointmentRepo.findOne({
+      where: { id },
+      relations: ['doctor', 'doctor.specialty', 'doctor.user', 'patient', 'patient.user'],
+    });
+    if (!appt) throw new NotFoundException(`Appointment with ID "${id}" not found`);
+    return appt;
+  }
+
+  // ── Users ─────────────────────────────────────────────────────────────────
+
+  async setUserActive(userId: number, isActive: boolean) {
+    const user = await this.userRepo.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException(`User with ID "${userId}" not found`);
+    user.isActive = isActive;
+    await this.userRepo.save(user);
+    return {
+      message: `User ${isActive ? 'activated' : 'deactivated'} successfully`,
+      userId: user.id,
+      isActive: user.isActive,
+    };
   }
 
   // ── Dashboard ─────────────────────────────────────────────────────────────

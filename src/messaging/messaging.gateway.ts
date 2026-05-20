@@ -32,7 +32,7 @@ export class MessagingGateway
   implements OnGatewayConnection, OnGatewayDisconnect
 {
   @WebSocketServer()
-  server: Server;
+  server!: Server;
 
   private readonly logger = new Logger(MessagingGateway.name);
 
@@ -86,9 +86,12 @@ export class MessagingGateway
 
     const message = await this.messagingService.send(dto, Number(user.id), user.role);
 
-    // Use message.receiverId (resolved user ID) not dto.receiverId (may be a profile ID)
-    this.server.to(`user:${message.receiverId}`).emit('newMessage', message);
-    console.log(message,"message")
+    // Emit to both sender and receiver so both chat boxes update instantly
+    this.server
+      .to(`user:${message.receiverId}`)
+      .to(`user:${message.senderId}`)
+      .emit('newMessage', message);
+
     return message;
   }
 

@@ -28,7 +28,7 @@ import { UpdatePrescriptionDto } from './dto/update-prescription.dto';
 import { UpsertConsultationNoteDto } from './dto/upsert-consultation-note.dto';
 import { Prescription } from './entities/prescription.entity';
 import { UserRole } from '../users/entities/user.entity';
-import { Doctor } from '../doctor/entities/doctor.entity';
+import { Doctor, DoctorStatus } from '../doctor/entities/doctor.entity';
 import { Patient } from '../patients/entities/patient.entity';
 
 // Maps frontend type string to DB enum value
