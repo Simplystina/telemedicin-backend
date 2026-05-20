@@ -9,7 +9,7 @@ export class MailService {
   private readonly logger = new Logger(MailService.name);
 
   constructor(private readonly configService: ConfigService) {
-    const port = this.configService.get<number>('MAIL_PORT', 587);
+    const port = Number(this.configService.get('MAIL_PORT', 587));
     this.transporter = nodemailer.createTransport({
       host: this.configService.get<string>('MAIL_HOST'),
       port,
@@ -30,7 +30,7 @@ export class MailService {
     const verificationLink = `${frontendUrl}/verify-email?token=${token}`;
 
     const mailOptions = {
-      from: this.configService.get<string>('MAIL_FROM', '"Telemedicine" <noreply@telemedicine.com>'),
+      from: this.configService.get<string>('MAIL_FROM') ?? `"Telemedicine" <${this.configService.get<string>('MAIL_USER')}>`,
       to: user.email,
       subject: 'Verify Your Email - Telemedicine',
       html: `
@@ -52,8 +52,9 @@ export class MailService {
     try {
       await this.transporter.sendMail(mailOptions);
       this.logger.log(`Verification email sent to ${user.email}`);
-    } catch (error:any) {
-      this.logger.error(`Failed to send verification email to ${user.email}`, error.stack);
+    } catch (error: any) {
+      this.logger.error(`Failed to send verification email to ${user.email}: ${error.message}`, error.stack);
+      throw error;
     }
   }
 
@@ -62,7 +63,7 @@ export class MailService {
     const resetLink = `${frontendUrl}/reset-password?token=${token}`;
 
     const mailOptions = {
-      from: this.configService.get<string>('MAIL_FROM', '"Telemedicine" <noreply@telemedicine.com>'),
+      from: this.configService.get<string>('MAIL_FROM') ?? `"Telemedicine" <${this.configService.get<string>('MAIL_USER')}>`,
       to: user.email,
       subject: 'Reset Your Password - Telemedicine',
       html: `
@@ -84,8 +85,9 @@ export class MailService {
     try {
       await this.transporter.sendMail(mailOptions);
       this.logger.log(`Password reset email sent to ${user.email}`);
-    } catch (error: unknown) {
-      this.logger.error(`Failed to send password reset email to ${user.email}`, (error as Error).stack);
+    } catch (error: any) {
+      this.logger.error(`Failed to send password reset email to ${user.email}: ${error.message}`, error.stack);
+      throw error;
     }
   }
 }
