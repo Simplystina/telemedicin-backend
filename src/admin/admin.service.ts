@@ -36,7 +36,7 @@ export class AdminService {
 
     const qb = this.doctorRepo
       .createQueryBuilder('doctor')
-      .leftJoinAndSelect('doctor.user', 'user')
+      .innerJoinAndSelect('doctor.user', 'user', 'user.isEmailVerified = :verified', { verified: true })
       .leftJoinAndSelect('doctor.specialty', 'specialty')
       .skip(skip)
       .take(limit)

@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm install *)"
+      "Bash(npm install *)",
+      "Bash(node -e \"const { BrevoClient } = require\\('@getbrevo/brevo'\\); const c = new BrevoClient\\({apiKey:'test'}\\); console.log\\(Object.keys\\(c._options || {}\\)\\); const proto = Object.getPrototypeOf\\(c\\); console.log\\('proto keys:', Object.getOwnPropertyNames\\(proto\\)\\)\")",
+      "Bash(node -e \"const { BrevoClient } = require\\('@getbrevo/brevo'\\); const c = new BrevoClient\\({apiKey:'test'}\\); const te = c.transactionalEmails; console.log\\(Object.getOwnPropertyNames\\(Object.getPrototypeOf\\(te\\)\\)\\)\")"
     ]
   }
 }

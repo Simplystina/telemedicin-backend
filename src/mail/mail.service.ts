@@ -1,19 +1,31 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Resend } from 'resend';
+import * as nodemailer from 'nodemailer';
 import { User } from '../users/entities/user.entity';
 
 @Injectable()
 export class MailService {
-  private resend: Resend;
-  private readonly from: string;
+  private transporter: nodemailer.Transporter;
   private readonly logger = new Logger(MailService.name);
 
   constructor(private readonly configService: ConfigService) {
-    this.resend = new Resend(this.configService.get<string>('RESEND_API_KEY'));
-    this.from =
-      this.configService.get<string>('MAIL_FROM') ??
-      `"Telemedicine" <${this.configService.get<string>('MAIL_USER')}>`;
+    const port = Number(this.configService.get('MAIL_PORT', 587));
+    this.transporter = nodemailer.createTransport({
+      host: this.configService.get<string>('MAIL_HOST'),
+      port,
+      secure: port === 465,
+      requireTLS: port === 587,
+      auth: {
+        user: this.configService.get<string>('MAIL_USER'),
+        pass: this.configService.get<string>('MAIL_PASS'),
+      },
+      debug: true,
+      logger: true,
+      tls: {
+        rejectUnauthorized: false,
+        minVersion: 'TLSv1.2',
+      },
+    });
   }
 
   async sendVerificationEmail(user: User, token: string) {
@@ -21,8 +33,8 @@ export class MailService {
     const verificationLink = `${frontendUrl}/verify-email?token=${token}`;
 
     try {
-      await this.resend.emails.send({
-        from: this.from,
+      await this.transporter.sendMail({
+        from: this.configService.get<string>('MAIL_FROM') ?? `"Telemedicine" <${this.configService.get('MAIL_USER')}>`,
         to: user.email,
         subject: 'Verify Your Email - Telemedicine',
         html: `
@@ -52,8 +64,8 @@ export class MailService {
     const resetLink = `${frontendUrl}/reset-password?token=${token}`;
 
     try {
-      await this.resend.emails.send({
-        from: this.from,
+      await this.transporter.sendMail({
+        from: this.configService.get<string>('MAIL_FROM') ?? `"Telemedicine" <${this.configService.get('MAIL_USER')}>`,
         to: user.email,
         subject: 'Reset Your Password - Telemedicine',
         html: `
