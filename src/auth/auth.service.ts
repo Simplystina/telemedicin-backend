@@ -272,7 +272,10 @@ export class AuthService {
     const message = 'If an account with that email exists, a password reset link has been sent.';
     const user = await this.userRepository.findOne({ where: { email: dto.email } });
 
-    if (!user || !user.isActive) return { message };
+    // Return the same generic message if the user doesn't exist (prevents enumeration).
+    // NOTE: We intentionally allow inactive / unverified users to receive a reset email,
+    // because resetting the password may be the only way they can regain access.
+    if (!user) return { message };
 
     await this.passwordResetTokenRepository.delete({ userId: user.id });
 
