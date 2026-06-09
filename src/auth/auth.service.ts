@@ -269,13 +269,13 @@ export class AuthService {
 
   // ─── Forgot password ──────────────────────────────────────────────────────
   async forgotPassword(dto: ForgotPasswordDto) {
-    const message = 'If an account with that email exists, a password reset link has been sent.';
     const user = await this.userRepository.findOne({ where: { email: dto.email } });
 
-    // Return the same generic message if the user doesn't exist (prevents enumeration).
-    // NOTE: We intentionally allow inactive / unverified users to receive a reset email,
-    // because resetting the password may be the only way they can regain access.
-    if (!user) return { message };
+    if (!user) {
+      throw new NotFoundException(
+        'No account found with this email address. Please create an account to get started.',
+      );
+    }
 
     await this.passwordResetTokenRepository.delete({ userId: user.id });
 
@@ -287,7 +287,7 @@ export class AuthService {
     await this.passwordResetTokenRepository.save(record);
     await this.mailService.sendPasswordResetEmail(user, token);
 
-    return { message };
+    return { message: 'Password reset link sent. Please check your email.' };
   }
 
   // ─── Reset password ───────────────────────────────────────────────────────
